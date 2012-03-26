@@ -8,19 +8,9 @@
     xmlns:plone="http://namespaces.plone.org/plone"
     i18n_domain="collective.cleanupzodb">
 
-  <include package=".browser" />
-
   <i18n:registerTranslations directory="locales" />
 
-  <genericsetup:registerProfile
-      name="default"
-      title="collective.cleanupzodb"
-      directory="profiles/default"
-      description='Extension profile'
-      provides="Products.GenericSetup.interfaces.EXTENSION"
-      />
-  <include package=".upgrades" />
-
+  <!-- portal_setup -->
   <adapter factory=".setup.GenericSetupCleaner" for="*"/>
   <utility
     component=".setup.StepVocabularyFactory"
@@ -30,6 +20,14 @@
     for="*"
     name="cleanup-portal_setup"
     class=".setup.GenericSetupCleanerPage"
+    permission="cmf.ManagePortal"
+    />
+
+  <!-- View aka browser page used by content types -->
+  <browser:page
+    for="*"
+    name="cleanup-view"
+    class=".view.ReplaceViewPage"
     permission="cmf.ManagePortal"
     />
 

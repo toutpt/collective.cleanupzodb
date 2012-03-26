@@ -18,6 +18,9 @@ class IGenericSetupCleaner(interface.Interface):
     def remove_import_step(stepid):
         """Remove step created with import_steps.xml"""
 
+    def remove_export_step(stepid):
+        """Remove step created with export_steps.xml"""
+
 class GenericSetupCleaner(object):
     interface.implements(IGenericSetupCleaner)
 
