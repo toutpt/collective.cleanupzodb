@@ -21,6 +21,11 @@
       />
   <include package=".upgrades" />
 
+  <adapter factory=".setup.GenericSetupCleaner" for="*"/>
+  <utility
+    component=".setup.StepVocabularyFactory"
+    name="collective.cleanupzodb.steps"
+    />
   <browser:page
     for="*"
     name="cleanup-portal_setup"

@@ -8,6 +8,8 @@ from Products.CMFCore.utils import getToolByName
 
 from zope.i18nmessageid import MessageFactory
 from Products.statusmessages.interfaces import IStatusMessage
+from zope.schema.interfaces import IVocabularyFactory
+from zope.schema.vocabulary import SimpleTerm, SimpleVocabulary
 _ = MessageFactory('collective.cleanupzodb')
 
 class IGenericSetupCleaner(interface.Interface):
@@ -17,6 +19,7 @@ class IGenericSetupCleaner(interface.Interface):
         """Remove step created with import_steps.xml"""
 
 class GenericSetupCleaner(object):
+    interface.implements(IGenericSetupCleaner)
 
     def __init__(self, context):
         self.context = context
@@ -35,10 +38,30 @@ class GenericSetupCleaner(object):
             registry.unregisterStep(stepid)
             context._p_changed = True
 
+class StepVocabulary(object):
+    interface.implements(IVocabularyFactory)
+    
+    def __call__(self, context):
+        portal_setup = getToolByName(context, 'portal_setup')
+        registry = portal_setup.getImportStepRegistry()
+        steps = registry.listSteps()
+        terms = [SimpleTerm('import-%s'%str(i),
+                            'import-%s'%str(i),
+                            u'import: %s'%i) for i in steps]
+        registry = portal_setup.getExportStepRegistry()
+        steps = registry.listSteps()
+        terms += [SimpleTerm('export-%s'%str(i),
+                            'export-%s'%str(i),
+                            u'export: %s'%i) for i in steps]
+        return SimpleVocabulary(terms)
+
+StepVocabularyFactory = StepVocabulary()
+
 class IGenericSetupCleanerFormSchema(interface.Interface):
     """Form schema to let a person use the cleaner"""
 
-    stepid = schema.ASCIILine(title=_(u"Step ID"))
+    stepid = schema.Choice(title=_(u"Step ID"),
+                           vocabulary="collective.cleanupzodb.steps")
 
 class GenericSetupCleanerForm(form.Form):
     
@@ -46,25 +69,27 @@ class GenericSetupCleanerForm(form.Form):
     label = u"GenericSetup Cleaner Form"
     ignoreContext = True #we will never use the context
 
-    @button.buttonAndHandler(_(u'Remove Import Step'),
-                             name='remove_import_step')
-    def remove_import_step(self, action):
+    @button.buttonAndHandler(_(u'Remove Step'),
+                             name='remove_step')
+    def remove_step(self, action):
         data, errors = self.extractData()
-        if errors:
-            return
-        stepid = data.get('stepid',None)
-        IGenericSetupCleaner(self.context).remove_import_step(stepid)
-        IStatusMessage(self.request).add(_(u'step %s has been removed'))
 
-    @button.buttonAndHandler(_(u'Remove Export Step'),
-                             name='remove_export_step')
-    def remove_export_step(self, action):
-        data, errors = self.extractData()
         if errors:
             return
-        stepid = data.get('stepid',None)
-        IGenericSetupCleaner(self.context).remove_export_step(stepid)
+
+        step = data.get('stepid')
+        step_type = step[:6]
+        stepid = step[7:]
+
+        if step_type == 'import':
+            IGenericSetupCleaner(self.context).remove_import_step(stepid)
+        else:
+            IGenericSetupCleaner(self.context).remove_export_step(stepid)
+
         IStatusMessage(self.request).add(_(u'step %s has been removed'))
+        url = self.context.absolute_url()+'/@@cleanup-portal_setup'
+        self.request.response.redirect(url)
+
 
 class GenericSetupCleanerPage(layout.FormWrapper):
     label = _(u"Cleanup portal_setup")
