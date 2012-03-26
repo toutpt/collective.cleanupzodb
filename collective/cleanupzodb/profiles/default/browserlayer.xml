@@ -1,0 +1,4 @@
+<layers>
+    <layer name="collective.cleanupzodb"
+           interface="collective.cleanupzodb.browser.interfaces.ILayer" />
+</layers>
